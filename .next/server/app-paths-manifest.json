@@ -1,13 +1,7 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
-  "/about/page": "app/about/page.js",
-  "/add-contractor/page": "app/add-contractor/page.js",
-  "/contact/page": "app/contact/page.js",
-  "/admin/page": "app/admin/page.js",
-  "/page": "app/page.js",
-  "/post-work/page": "app/post-work/page.js",
-  "/login/page": "app/login/page.js",
+  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
+  "/api/jobs/route": "app/api/jobs/route.js",
   "/search-work/page": "app/search-work/page.js",
-  "/refer-earn/page": "app/refer-earn/page.js",
-  "/terms/page": "app/terms/page.js"
+  "/post-work/page": "app/post-work/page.js",
+  "/add-contractor/page": "app/add-contractor/page.js"
 }

@@ -42,9 +42,7 @@ export default function AddContractor() {
     }
   }, []);
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-  ) => {
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -52,7 +50,7 @@ export default function AddContractor() {
     }));
   };
 
-  const handleCategoryChange = (category: string) => {
+  const handleCategoryChange = (category) => {
     setFormData(prev => ({
       ...prev,
       categories: prev.categories.includes(category)
@@ -60,6 +58,7 @@ export default function AddContractor() {
         : [...prev.categories, category]
     }));
   };
+
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -70,13 +69,33 @@ export default function AddContractor() {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setIsSubmitting(true);
+  setSubmitMessage('');
 
-    try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      setSubmitMessage('Contractor application submitted successfully! Our admin team will review and contact you soon.');
+  try {
+    const form = new FormData();
+    form.append('name', formData.name);
+    form.append('aadhar', formData.aadhar);
+    form.append('phone', formData.phone);
+    form.append('email', formData.email);
+    form.append('address', formData.address);
+    form.append('experience', formData.experience);
+    form.append('categories', JSON.stringify(formData.categories));
+    if (formData.idFile) {
+      form.append('idFile', formData.idFile);
+    }
+
+    const res = await fetch('/api/postcontractor', {
+      method: 'POST',
+      body: form,
+    });
+
+    const result = await res.json();
+
+    if (result.success) {
+      setSubmitMessage('Contractor added successfully!');
       setFormData({
         name: '',
         aadhar: '',
@@ -87,12 +106,19 @@ export default function AddContractor() {
         experience: '',
         idFile: null
       });
-    } catch (error) {
-      setSubmitMessage('Error submitting application. Please try again.');
-    } finally {
-      setIsSubmitting(false);
+    } else {
+      setSubmitMessage('Error: ' + result.error);
     }
-  };
+  } catch (error) {
+    console.error('Error submitting form:', error);
+    setSubmitMessage('Something went wrong.');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
+
+
 
   const handleLoginSuccess = () => {
     setIsLoggedIn(true);
@@ -157,7 +183,7 @@ export default function AddContractor() {
             transition={{ duration: 0.6 }}
             className="bg-white rounded-xl shadow-lg p-8"
           >
-            <form id="contractor-form" onSubmit={handleSubmit} className="space-y-6">
+            <form action="/api/postContractor" method="POST" id="contractor-form" onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">

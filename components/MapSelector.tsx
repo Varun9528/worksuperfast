@@ -1,71 +1,79 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
-interface MapSelectorProps {
-  onLocationSelect: (location: { lat: number; lng: number; address: string }) => void;
+interface Location {
+  lat: number;
+  lng: number;
+  address?: string;
 }
 
-export default function MapSelector({ onLocationSelect }: MapSelectorProps) {
-  const [selectedLocation, setSelectedLocation] = useState(null);
-  const [showMap, setShowMap] = useState(false);
+interface Props {
+  defaultLocation?: Location | null;
+  onLocationSelect: (location: Location) => void;
+}
 
-  const handleLocationClick = () => {
-    setShowMap(true);
-    
-    const defaultLocation = {
-      lat: 28.6139,
-      lng: 77.2090,
-      address: "New Delhi, India"
-    };
-    
-    setSelectedLocation(defaultLocation);
-    onLocationSelect(defaultLocation);
-  };
+export default function MapSelector({ defaultLocation, onLocationSelect }: Props) {
+  const mapRef = useRef<L.Map | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
 
-  return (
-    <div className="space-y-4">
-      <div
-        className="w-full h-64 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-blue-400 transition-colors"
-        onClick={handleLocationClick}
-      >
-        {!showMap ? (
-          <div className="text-center">
-            <i className="ri-map-pin-add-line text-4xl text-gray-400 mb-2"></i>
-            <p className="text-gray-600 font-medium">Click to select location on map</p>
-            <p className="text-sm text-gray-500">Pin your exact work location</p>
-          </div>
-        ) : (
-          <div className="w-full h-full relative">
-            <iframe
-              src="https://www.google.com/maps/embed/v1/place?key=YOUR_API_KEY&q=28.6139,77.2090&zoom=15"
-              width="100%"
-              height="100%"
-              style={{ border: 0 }}
-              allowFullScreen
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              className="rounded-lg"
-            ></iframe>
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
-                <i className="ri-map-pin-fill text-white text-sm"></i>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-      
-      {selectedLocation && (
-        <div className="bg-blue-50 p-4 rounded-lg">
-          <div className="flex items-center space-x-2">
-            <i className="ri-map-pin-line text-blue-600"></i>
-            <span className="text-sm text-blue-800 font-medium">
-              Location Selected: {selectedLocation.address}
-            </span>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  const [isInitial, setIsInitial] = useState(true); // ✅ prevent re-trigger
+
+  useEffect(() => {
+    if (!mapRef.current) {
+      mapRef.current = L.map('leaflet-map').setView(
+        defaultLocation ? [defaultLocation.lat, defaultLocation.lng] : [20.5937, 78.9629],
+        defaultLocation ? 15 : 5
+      );
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+      }).addTo(mapRef.current);
+
+      mapRef.current.on('click', async (e: L.LeafletMouseEvent) => {
+        await setMarker(e.latlng.lat, e.latlng.lng);
+      });
+    }
+
+    // ✅ Only set marker once on initial mount if defaultLocation is provided
+    if (isInitial && defaultLocation) {
+      setIsInitial(false);
+      setMarker(defaultLocation.lat, defaultLocation.lng);
+    }
+
+    async function setMarker(lat: number, lng: number) {
+      const address = await getAddress(lat, lng);
+      const location = { lat, lng, address };
+
+      if (markerRef.current) {
+        markerRef.current.setLatLng([lat, lng]);
+      } else {
+        markerRef.current = L.marker([lat, lng], { draggable: true }).addTo(mapRef.current!);
+        markerRef.current.on('dragend', async () => {
+          const pos = markerRef.current!.getLatLng();
+          const updatedAddress = await getAddress(pos.lat, pos.lng);
+          onLocationSelect({ lat: pos.lat, lng: pos.lng, address: updatedAddress });
+        });
+      }
+
+      mapRef.current!.setView([lat, lng], 15);
+      onLocationSelect(location);
+    }
+
+    async function getAddress(lat: number, lng: number): Promise<string> {
+      try {
+        const res = await fetch(`/api/reverse-geocode?lat=${lat}&lon=${lng}`);
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const data = await res.json();
+        return data.display_name || 'Unknown address';
+      } catch (err) {
+        console.error('Address fetch failed:', err);
+        return 'Address not found';
+      }
+    }
+  }, [defaultLocation, onLocationSelect, isInitial]);
+
+  return <div id="leaflet-map" className="w-full h-72 rounded border" />;
 }

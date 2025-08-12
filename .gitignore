@@ -1,1 +1,25 @@
-node_modules
+# dependencies
+/node_modules
+
+# build output
+/.next
+/out
+
+# env files (never commit these)
+.env
+.env.local
+.env.development
+.env.production
+
+# log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# misc
+.DS_Store
+
+# keep gitignore itself
+!.gitignore
+
+/lib/generated/prisma

@@ -1,13 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
 export default function Login() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
     email: '',
@@ -17,9 +20,18 @@ export default function Login() {
     confirmPassword: '',
     referralCode: ''
   });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
-  const router = useRouter();
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'register') {
+      setIsLogin(false);
+    } else {
+      setIsLogin(true);
+    }
+  }, [searchParams]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -30,31 +42,59 @@ export default function Login() {
     e.preventDefault();
     setIsSubmitting(true);
     setMessage('');
-    
+
     try {
       if (!isLogin && formData.password !== formData.confirmPassword) {
         setMessage('Passwords do not match');
+        setIsSubmitting(false);
         return;
       }
-      
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      localStorage.setItem('authToken', 'dummy-token-' + Date.now());
-      localStorage.setItem('userRole', 'user');
-      localStorage.setItem('userName', formData.name || 'User');
-      
-      if (!isLogin && formData.referralCode) {
-        localStorage.setItem('referredBy', formData.referralCode);
+
+      const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
+
+      const payload = isLogin
+        ? {
+            email: formData.email,
+            password: formData.password
+          }
+        : {
+            name: formData.name,
+            email: formData.email,
+            password: formData.password,
+            phone: formData.phone,
+            referralCode: formData.referralCode
+          };
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      let result;
+      try {
+        result = await response.json();
+      } catch (err) {
+        setMessage('Server returned invalid response.');
+        console.error('Invalid JSON response:', err);
+        setIsSubmitting(false);
+        return;
       }
-      
-      setMessage(isLogin ? 'Login successful! Redirecting...' : 'Registration successful! Redirecting...');
-      
-      setTimeout(() => {
-        router.push('/');
-      }, 1000);
-      
+
+      if (result.success) {
+        localStorage.setItem('authToken', result.token || 'dummy-token');
+        localStorage.setItem('userEmail', formData.email);
+        setMessage(`${isLogin ? 'Login' : 'Registration'} successful! Redirecting...`);
+
+        setTimeout(() => {
+          window.location.href = '/'; // ✅ Redirect to home page
+        }, 1000);
+      } else {
+        setMessage(result.message || 'Failed to process your request.');
+      }
     } catch (error) {
       setMessage('Something went wrong. Please try again.');
+      console.error(error);
     } finally {
       setIsSubmitting(false);
     }
@@ -63,7 +103,6 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      
       <section className="py-12">
         <div className="max-w-md mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
@@ -80,13 +119,11 @@ export default function Login() {
                 {isLogin ? 'Sign in to your account' : 'Create your account to get started'}
               </p>
             </div>
-            
+
             <form onSubmit={handleSubmit} className="space-y-6">
               {!isLogin && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Full Name *
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
                   <input
                     type="text"
                     name="name"
@@ -98,11 +135,9 @@ export default function Login() {
                   />
                 </div>
               )}
-              
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
                 <input
                   type="email"
                   name="email"
@@ -113,12 +148,10 @@ export default function Login() {
                   required
                 />
               </div>
-              
+
               {!isLogin && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone Number *
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
                   <input
                     type="tel"
                     name="phone"
@@ -131,11 +164,9 @@ export default function Login() {
                   />
                 </div>
               )}
-              
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Password *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Password *</label>
                 <input
                   type="password"
                   name="password"
@@ -146,13 +177,11 @@ export default function Login() {
                   required
                 />
               </div>
-              
+
               {!isLogin && (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Confirm Password *
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Confirm Password *</label>
                     <input
                       type="password"
                       name="confirmPassword"
@@ -163,11 +192,9 @@ export default function Login() {
                       required
                     />
                   </div>
-                  
+
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Referral Code (Optional)
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Referral Code (Optional)</label>
                     <input
                       type="text"
                       name="referralCode"
@@ -179,17 +206,13 @@ export default function Login() {
                   </div>
                 </>
               )}
-              
+
               {message && (
-                <div className={`p-4 rounded-lg text-center ${
-                  message.includes('successful') 
-                    ? 'bg-green-50 text-green-700' 
-                    : 'bg-red-50 text-red-700'
-                }`}>
+                <div className={`p-4 rounded-lg text-center ${message.includes('successful') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
                   {message}
                 </div>
               )}
-              
+
               <button
                 type="submit"
                 disabled={isSubmitting}
@@ -208,16 +231,13 @@ export default function Login() {
                 )}
               </button>
             </form>
-            
+
             <div className="mt-8 text-center">
-              <button
-                onClick={() => setIsLogin(!isLogin)}
-                className="text-blue-600 hover:text-blue-700 font-medium"
-              >
+              <button onClick={() => setIsLogin(!isLogin)} className="text-blue-600 hover:text-blue-700 font-medium">
                 {isLogin ? "Don't have an account? Sign Up" : "Already have an account? Sign In"}
               </button>
             </div>
-            
+
             {isLogin && (
               <div className="mt-4 text-center">
                 <Link href="/forgot-password" className="text-sm text-gray-600 hover:text-gray-800">
@@ -228,7 +248,6 @@ export default function Login() {
           </motion.div>
         </div>
       </section>
-      
       <Footer />
     </div>
   );
