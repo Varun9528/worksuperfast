@@ -2,6 +2,5 @@
   "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
   "/api/jobs/route": "app/api/jobs/route.js",
   "/search-work/page": "app/search-work/page.js",
-  "/post-work/page": "app/post-work/page.js",
-  "/add-contractor/page": "app/add-contractor/page.js"
+  "/post-work/page": "app/post-work/page.js"
 }

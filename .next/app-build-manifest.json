@@ -21,11 +21,6 @@
       "static/chunks/main-app.js",
       "static/chunks/app/api/auth/[...nextauth]/route.js"
     ],
-    "/post-work/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/post-work/page.js"
-    ],
     "/search-work/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -37,10 +32,10 @@
       "static/chunks/main-app.js",
       "static/chunks/app/api/jobs/route.js"
     ],
-    "/add-contractor/page": [
+    "/post-work/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/add-contractor/page.js"
+      "static/chunks/app/post-work/page.js"
     ]
   }
 }
